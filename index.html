@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'; frame-ancestors 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b1f33" />
+    <meta
+      name="description"
+      content="NetworkCheck: web app educativa e diagnostica per capire cosa è esposto nella tua rete locale. Tutta l'analisi avviene sul tuo dispositivo."
+    />
+
+    <title>NetworkCheck</title>
+
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./icons/favicon.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./css/style.css" />
+    <script type="module" src="./js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-i18n="app.skip">Vai al contenuto principale</a>
+
+    <header class="site-header">
+      <div class="site-header__inner">
+        <div class="brand">
+          <img class="brand__logo" src="./icons/favicon.svg" alt="" width="36" height="36" />
+          <div>
+            <h1 data-i18n="app.title">NetworkCheck</h1>
+            <p class="tagline" data-i18n="app.tagline">
+              Capisci cosa è esposto nella tua rete e sul tuo computer.
+            </p>
+          </div>
+        </div>
+        <button
+          id="lang-toggle"
+          class="btn btn--ghost"
+          type="button"
+          data-i18n="lang.toggle"
+          data-i18n-aria="lang.aria"
+        >
+          English
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="container">
+      <!-- Introduzione -->
+      <section class="card intro" aria-labelledby="intro-title">
+        <h2 id="intro-title" data-i18n="intro.title">Come funziona</h2>
+        <p data-i18n="intro.p1"></p>
+        <p data-i18n="intro.p2"></p>
+        <p class="note" data-i18n="intro.note"></p>
+      </section>
+
+      <!-- Sezione: Servizi esposti -->
+      <section
+        class="card section"
+        aria-labelledby="svc-title"
+        data-analyzer
+      >
+        <h2 id="svc-title" data-i18n="svc.title">Servizi esposti</h2>
+        <p data-i18n="svc.desc"></p>
+
+        <div class="cmd-grid">
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="svc.cmdMac">macOS</span>
+            <code id="cmd-svc-mac" class="cmd__code">sudo lsof -nP -iTCP -sTCP:LISTEN</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-svc-mac" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="svc.cmdWin">Windows</span>
+            <code id="cmd-svc-win" class="cmd__code">netstat -ano -p TCP | findstr LISTENING</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-svc-win" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="svc.cmdLinux">Linux</span>
+            <code id="cmd-svc-linux" class="cmd__code">sudo ss -tulpn</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-svc-linux" data-i18n="copy.label">Copia</button>
+          </div>
+        </div>
+
+        <details class="alt">
+          <summary data-i18n="svc.altTitle">Comandi alternativi</summary>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="svc.altMac">macOS — mostra i tuoi indirizzi IP locali:</span>
+            <code id="cmd-alt-mac" class="cmd__code">ifconfig | grep "inet "</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-alt-mac" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="svc.altLinuxIp">Linux — mostra i tuoi indirizzi IP locali:</span>
+            <code id="cmd-alt-linux-ip" class="cmd__code">hostname -I</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-alt-linux-ip" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="svc.altLinuxSs">Linux — porte in ascolto con processo:</span>
+            <code id="cmd-alt-linux-ss" class="cmd__code">ss -tulpn</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-alt-linux-ss" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="alt__text">
+            <h3 data-i18n="svc.winPidTitle">Windows — dal PID al programma</h3>
+            <p data-i18n="svc.winPid"></p>
+          </div>
+        </details>
+
+        <h3 data-i18n="svc.tableTitle">Porte di riferimento</h3>
+        <div class="table-wrap">
+          <table class="ports">
+            <thead>
+              <tr>
+                <th scope="col" data-i18n="svc.thPort">Porta</th>
+                <th scope="col" data-i18n="svc.thService">Servizio</th>
+                <th scope="col" data-i18n="svc.thNote">Nota</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">22</th><td>SSH</td><td data-i18n="port.22"></td></tr>
+              <tr><th scope="row">80</th><td>HTTP</td><td data-i18n="port.80"></td></tr>
+              <tr><th scope="row">443</th><td>HTTPS</td><td data-i18n="port.443"></td></tr>
+              <tr><th scope="row">445</th><td>SMB</td><td data-i18n="port.445"></td></tr>
+              <tr><th scope="row">3389</th><td>RDP</td><td data-i18n="port.3389"></td></tr>
+              <tr><th scope="row">5000</th><td>Server locale</td><td data-i18n="port.5000"></td></tr>
+              <tr><th scope="row">8080</th><td>HTTP alt</td><td data-i18n="port.8080"></td></tr>
+              <tr><th scope="row">8765</th><td>Python http.server</td><td data-i18n="port.8765"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="analyzer">
+          <label class="analyzer__label" for="svc-input" data-i18n="svc.pasteLabel">Incolla qui l’output del comando</label>
+          <textarea
+            id="svc-input"
+            class="analyzer__input"
+            data-role="input"
+            rows="6"
+            spellcheck="false"
+            autocomplete="off"
+            data-i18n-placeholder="svc.placeholder"
+          ></textarea>
+          <div class="analyzer__actions">
+            <button class="btn btn--primary" type="button" data-role="run" data-i18n="svc.analyze">Interpreta l’output</button>
+            <button class="btn btn--ghost" type="button" data-role="clear" data-i18n="svc.clear">Pulisci</button>
+          </div>
+          <div class="results" data-role="results" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- Sezione: Dispositivi nella rete -->
+      <section
+        class="card section"
+        aria-labelledby="net-title"
+        data-analyzer
+      >
+        <h2 id="net-title" data-i18n="net.title">Dispositivi nella rete</h2>
+        <p data-i18n="net.desc"></p>
+
+        <div class="builder">
+          <h3 data-i18n="net.builderTitle">Generatore di comando</h3>
+          <p data-i18n="net.builderDesc"></p>
+          <div class="builder__row">
+            <label class="builder__label" for="builder-ip" data-i18n="net.ipLabel">Il tuo IP locale</label>
+            <input
+              id="builder-ip"
+              class="builder__input"
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              spellcheck="false"
+              data-i18n-placeholder="net.ipPlaceholder"
+            />
+            <button id="builder-run" class="btn btn--primary" type="button" data-i18n="net.build">Genera comando</button>
+          </div>
+          <p id="builder-error" class="results__error" role="alert"></p>
+          <div id="builder-result" class="cmd" hidden>
+            <span class="cmd__os" data-i18n="net.builtLabel">Comando generato</span>
+            <code id="builder-output" class="cmd__code"></code>
+            <button class="btn btn--copy" type="button" data-copy-target="#builder-output" data-i18n="copy.label">Copia</button>
+          </div>
+        </div>
+
+        <div class="analyzer">
+          <label class="analyzer__label" for="net-input" data-i18n="net.pasteLabel">Incolla qui l’output di nmap</label>
+          <textarea
+            id="net-input"
+            class="analyzer__input"
+            data-role="input"
+            rows="6"
+            spellcheck="false"
+            autocomplete="off"
+            data-i18n-placeholder="net.placeholder"
+          ></textarea>
+          <div class="analyzer__actions">
+            <button class="btn btn--primary" type="button" data-role="run" data-i18n="svc.analyze">Interpreta l’output</button>
+            <button class="btn btn--ghost" type="button" data-role="clear" data-i18n="svc.clear">Pulisci</button>
+          </div>
+          <div class="results" data-role="results" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- Sezione: Firewall -->
+      <section
+        class="card section"
+        aria-labelledby="fw-title"
+        data-analyzer
+      >
+        <h2 id="fw-title" data-i18n="fw.title">Stato del firewall</h2>
+        <p data-i18n="fw.desc"></p>
+
+        <div class="cmd-grid">
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="fw.cmdMac">macOS</span>
+            <code id="cmd-fw-mac" class="cmd__code">/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-fw-mac" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="fw.cmdWin">Windows</span>
+            <code id="cmd-fw-win" class="cmd__code">netsh advfirewall show allprofiles state</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-fw-win" data-i18n="copy.label">Copia</button>
+          </div>
+          <div class="cmd">
+            <span class="cmd__os" data-i18n="fw.cmdLinux">Linux (ufw)</span>
+            <code id="cmd-fw-linux" class="cmd__code">sudo ufw status</code>
+            <button class="btn btn--copy" type="button" data-copy-target="#cmd-fw-linux" data-i18n="copy.label">Copia</button>
+          </div>
+        </div>
+
+        <div class="analyzer">
+          <label class="analyzer__label" for="fw-input" data-i18n="fw.pasteLabel">Incolla qui l’output del comando</label>
+          <textarea
+            id="fw-input"
+            class="analyzer__input"
+            data-role="input"
+            rows="5"
+            spellcheck="false"
+            autocomplete="off"
+            data-i18n-placeholder="fw.placeholder"
+          ></textarea>
+          <div class="analyzer__actions">
+            <button class="btn btn--primary" type="button" data-role="run" data-i18n="svc.analyze">Interpreta l’output</button>
+            <button class="btn btn--ghost" type="button" data-role="clear" data-i18n="svc.clear">Pulisci</button>
+          </div>
+          <div class="results" data-role="results" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <p class="note" data-i18n="footer.privacy"></p>
+        <p class="note" data-i18n="footer.offline"></p>
+        <div class="site-footer__actions">
+          <a id="open-disclaimer" href="#" data-i18n="disc.link">Disclaimer</a>
+          <button id="clear-all" class="btn btn--ghost" type="button" data-i18n="footer.clear">Cancella tutto</button>
+        </div>
+        <p id="clear-feedback" class="note" role="status" aria-live="polite"></p>
+        <p class="author" data-i18n="footer.author">Alessandro Pezzali / pezzaliAPP</p>
+      </div>
+    </footer>
+
+    <!-- Modale disclaimer / consenso -->
+    <div
+      id="disclaimer"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="disclaimer-title"
+      aria-describedby="disclaimer-desc"
+      hidden
+    >
+      <div class="modal__dialog" role="document">
+        <h2 id="disclaimer-title" data-i18n="disc.title">Prima di iniziare</h2>
+        <p id="disclaimer-desc" data-i18n="disc.p1"></p>
+        <ul class="modal__list">
+          <li data-i18n="disc.li1"></li>
+          <li data-i18n="disc.li2"></li>
+          <li data-i18n="disc.li3"></li>
+        </ul>
+        <label class="modal__check">
+          <input id="disclaimer-accept" type="checkbox" />
+          <span data-i18n="disc.checkbox">Ho letto e accetto</span>
+        </label>
+        <div class="modal__actions">
+          <button id="disclaimer-enter" class="btn btn--primary" type="button" disabled data-i18n="disc.enter">Entra</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
