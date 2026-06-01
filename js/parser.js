@@ -42,10 +42,15 @@ export const KNOWN_PORTS = {
   8765: { service: 'Python http.server', descKey: 'port.8765', risk: 'notice' },
 };
 
-/** Indirizzi che indicano un bind locale (non raggiungibile dalla rete). */
-const LOCAL_BINDS = new Set(['127.0.0.1', '::1', 'localhost']);
+/** Indirizzi che indicano un bind locale (loopback, non raggiungibile dalla rete). */
+const LOCAL_BINDS = new Set([
+  '127.0.0.1',
+  '::1',
+  '0:0:0:0:0:0:0:1',
+  'localhost',
+]);
 
-/** Indirizzi che indicano un bind su tutte le interfacce (esposto). */
+/** Indirizzi che indicano un bind su tutte le interfacce (potenzialmente esposto). */
 const ANY_BINDS = new Set(['0.0.0.0', '*', '::', '[::]', '0.0.0.0.0']);
 
 /**
@@ -64,11 +69,63 @@ function classifyBind(addr) {
 }
 
 /**
+ * Convalida una stringa porta e la converte in numero (1-65535).
+ *
+ * @param {string} addr - Indirizzo grezzo del socket.
+ * @param {string} portStr - Porta come stringa.
+ * @returns {?{addr: string, port: number}} Coppia valida, oppure `null`.
+ */
+function makeSocket(addr, portStr) {
+  const port = Number(portStr);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
+  return { addr, port };
+}
+
+/**
+ * Interpreta un singolo token come coppia indirizzo+porta di un socket.
+ *
+ * Riconosce tutte le notazioni dei comandi diagnostici comuni:
+ * - IPv6 tra parentesi quadre: `[::]:445`, `[::1]:42050`, `[fe80::1%5]:22` (lsof, ss, Windows);
+ * - IPv4 o wildcard `*` con separatore `:` o `.`: `*:5000`, `0.0.0.0:445`, `127.0.0.1.5000`;
+ * - IPv6 "nudo" col separatore `.` di `netstat -an` su macOS: `::1.5000`, `fe80::1.5000`;
+ * - hostname `localhost:3000`.
+ *
+ * Tutte le espressioni sono ancorate al token e lineari (anti-ReDoS).
+ *
+ * @param {string} tok - Token estratto dalla riga (delimitato da spazi).
+ * @returns {?{addr: string, port: number}} Socket riconosciuto, oppure `null`.
+ */
+function parseSocketToken(tok) {
+  // IPv6 tra parentesi quadre, con separatore ':' (o '.').
+  let m = tok.match(/^\[([^\]\s]+)\][:.](\d{1,5})$/);
+  if (m) return makeSocket(m[1], m[2]);
+
+  // IPv4 o wildcard '*', separatore ':' (Linux/Windows) o '.' (macOS netstat).
+  m = tok.match(/^(\*|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[:.](\d{1,5})$/);
+  if (m) return makeSocket(m[1], m[2]);
+
+  // IPv6 "nudo" con separatore '.' (macOS netstat): deve contenere ':'.
+  m = tok.match(/^([0-9a-fA-F:]+)\.(\d{1,5})$/);
+  if (m && m[1].includes(':')) return makeSocket(m[1], m[2]);
+
+  // Hostname loopback esplicito.
+  m = tok.match(/^(localhost)[:.](\d{1,5})$/i);
+  if (m) return makeSocket(m[1], m[2]);
+
+  return null;
+}
+
+/**
  * Estrae le porte in ascolto da output tipo `lsof`, `netstat`, `ss`.
  *
  * Considera solo le righe che contengono un marcatore di ascolto
- * (LISTEN / LISTENING). Per ogni riga estrae la coppia indirizzo:porta.
- * Gestisce sia il separatore `:` (Linux/Windows) sia `.` (macOS `netstat -an`).
+ * (LISTEN / LISTENING) e analizza i token separati da spazi: questo evita falsi
+ * accoppiamenti su altre parti della riga e gestisce correttamente i bind su
+ * tutte le interfacce (`*`, `0.0.0.0`, `[::]`) e il loopback IPv6 (`[::1]`).
+ *
+ * Per ogni riga prende il primo token valido (l'indirizzo locale del socket);
+ * l'indirizzo remoto delle righe in ascolto è sempre un wildcard/porta 0 e viene
+ * quindi scartato.
  *
  * @param {string} text - Output grezzo, già validato per dimensione.
  * @returns {Array<{port: number, address: string, exposed: boolean, proto: string}>}
@@ -76,26 +133,26 @@ function classifyBind(addr) {
  */
 export function extractListeningPorts(text) {
   const lines = String(text).split(/\r?\n/);
-  /** Cattura "addr:porta" o "addr.porta" su indirizzi IPv4, *, 0.0.0.0, ::, localhost. */
-  const re = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[?::\]?|\*|localhost)[:.](\d{1,5})\b/i;
   const seen = new Set();
   const out = [];
 
   for (const line of lines) {
     if (!/LISTEN/i.test(line)) continue;
-    const m = line.match(re);
-    if (!m) continue;
-
-    const port = Number(m[2]);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) continue;
-
-    const { address, exposed } = classifyBind(m[1]);
     const proto = /\budp\b/i.test(line) ? 'udp' : 'tcp';
-    const key = `${proto}:${address}:${port}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
 
-    out.push({ port, address, exposed, proto });
+    for (const tok of line.split(/\s+/)) {
+      const parsed = parseSocketToken(tok);
+      if (!parsed) continue;
+
+      const { address, exposed } = classifyBind(parsed.addr);
+      const key = `${proto}:${address}:${parsed.port}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push({ port: parsed.port, address, exposed, proto });
+      }
+      // Primo socket valido della riga = indirizzo locale: basta quello.
+      break;
+    }
   }
   return out;
 }

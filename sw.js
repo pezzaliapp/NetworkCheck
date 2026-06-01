@@ -2,7 +2,7 @@
    Cache versionata, strategia cache-first con fallback offline, pulizia delle
    cache vecchie all'attivazione. Nessuna chiamata di rete in uscita verso terzi. */
 
-const CACHE = 'networkcheck-v1';
+const CACHE = 'networkcheck-v2';
 
 /* Risorse del guscio applicativo, tutte con percorsi relativi. */
 const ASSETS = [
